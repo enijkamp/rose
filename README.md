@@ -5,7 +5,7 @@ Synthetic dataset of flowers with k pedals using the rose curve (Guido Grandi).
 
 PyTorch:
 
-```
+```python
 ds = RoseDataset(transform=transforms.Compose([
                          transforms.ToPILImage(),
                          transforms.CenterCrop(180),
