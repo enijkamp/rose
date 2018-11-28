@@ -32,8 +32,9 @@ class RoseDataset(data.Dataset):
 def create_rose_ds():
     ds = RoseDataset(transform=transforms.Compose([
                              transforms.ToPILImage(),
-                             transforms.CenterCrop(180),
-                             transforms.RandomAffine(degrees=45, fillcolor=(255, 255, 255)),
+                             transforms.CenterCrop(300),
+                             transforms.RandomAffine(degrees=45, scale=[0.5, 1.0]),
+                             transforms.CenterCrop(70),
                              transforms.Resize(32),
                              transforms.ToTensor(),
                              transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
@@ -41,21 +42,17 @@ def create_rose_ds():
     return ds
 
 
-def create_rose_ds_single_ch():
-    ds = RoseDataset(transform=transforms.Compose([
-                             transforms.ToPILImage(),
-                             transforms.Grayscale(num_output_channels=1),
-                             transforms.CenterCrop(180),
-                             transforms.RandomAffine(degrees=45, fillcolor=(255, )),
-                             transforms.Resize(32),
-                             transforms.ToTensor(),
-                             transforms.Normalize((0.5,), (0.5,)),
-                         ]))
-    return ds
-
-
 def create_rose_images():
-    return [plot_rose_to_np(k=k, amplitude=10, figsize=2) for k in range(16)]
+    k_s = [k for k in range(16)]
+    fg_c_s = ['b', 'r', 'c', 'm', 'y', 'w']
+    bg_c_s = [(0, .5, 0), (0, .5, .3), (0, 102/255, 0), (9/255, 51/255, 0)]
+    images = []
+    for k in k_s:
+        for fg_c in fg_c_s:
+            for bg_c in bg_c_s:
+                images.append(plot_rose_to_np(k=k, amplitude=10, figsize=2, color_fg=fg_c, color_bg=bg_c))
+
+    return images
 
 
 def rose(delta_steps, k, amplitude):
@@ -65,22 +62,28 @@ def rose(delta_steps, k, amplitude):
     return x, y
 
 
-def plot_rose(k=5, amplitude=10, delta_steps=1000, figsize=20):
+def plot_rose(k=5, amplitude=10, delta_steps=1000, figsize=20, color_fg='k', color_bg='w'):
     x, y = rose(delta_steps, k, amplitude)
-    plt.figure(figsize=(figsize, figsize))
-    plt.fill(x, y, 'k', lw=2)
+    fig = plt.figure(figsize=(figsize, figsize), facecolor=color_bg)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.set_axis_off()
+    fig.add_axes(ax)
     plt.axis('equal')
-    plt.axis('off')
+    plt.xlim([-amplitude, amplitude])
+    plt.ylim([-amplitude, amplitude])
+    plt.fill(x, y, color_fg, lw=2)
     plt.show()
 
 
-def plot_rose_to_np(k=5, amplitude=10, delta_steps=1000, figsize=5):
-    fig = Figure(figsize=(figsize, figsize))
+def plot_rose_to_np(k=5, amplitude=10, amplitude_bg_factor=3, delta_steps=1000, figsize=5, color_fg='w', color_bg='k'):
+    fig = Figure(figsize=(figsize, figsize), facecolor=color_bg)
     canvas = FigureCanvas(fig)
     ax = fig.gca()
-    x, y = rose(delta_steps, k, amplitude)
-    ax.fill(x, y, 'k', lw=2)
     ax.axis('equal')
+    ax.set_xlim([-amplitude_bg_factor*amplitude, amplitude_bg_factor*amplitude])
+    ax.set_ylim([-amplitude_bg_factor*amplitude, amplitude_bg_factor*amplitude])
+    x, y = rose(delta_steps, k, amplitude)
+    ax.fill(x, y, color_fg, lw=2)
     ax.axis('off')
     canvas.draw()
     image = np.fromstring(canvas.tostring_rgb(), dtype='uint8', sep='')
@@ -102,13 +105,14 @@ def test_torch(output):
 
 def test_torch_loader(output):
     ds = create_rose_ds()
-    loader = torch.utils.data.DataLoader(ds, batch_size=16, num_workers=0, pin_memory=True, shuffle=True)
+    loader = torch.utils.data.DataLoader(ds, batch_size=len(ds), num_workers=0, pin_memory=True, shuffle=True)
     batches = cycle(iter(loader))
-    vutils.save_image(next(batches).cpu().data, '{}/rose_batch.png'.format(output), normalize=True, nrow=4)
+    vutils.save_image(next(batches).cpu().data, '{}/rose_batch.png'.format(output), normalize=True, nrow=8)
 
 
 if __name__ == '__main__':
-    output = 'output'
+    output = 'output_v2'
     test(output)
     test_torch(output)
     test_torch_loader(output)
+
