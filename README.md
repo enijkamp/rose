@@ -5,4 +5,3 @@ Synthetic dataset of flowers with k pedals using the rose curve (Guido Grandi).
 
 ## authors
 Erik Nijkamp (enijkamp@ucla.edu)  
-Mitch Hill (mkhill@ucla.edu)
