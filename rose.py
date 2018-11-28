@@ -41,6 +41,19 @@ def create_rose_ds():
     return ds
 
 
+def create_rose_ds_single_ch():
+    ds = RoseDataset(transform=transforms.Compose([
+                             transforms.ToPILImage(),
+                             transforms.Grayscale(num_output_channels=1),
+                             transforms.CenterCrop(180),
+                             transforms.RandomAffine(degrees=45, fillcolor=(255, )),
+                             transforms.Resize(32),
+                             transforms.ToTensor(),
+                             transforms.Normalize((0.5,), (0.5,)),
+                         ]))
+    return ds
+
+
 def create_rose_images():
     return [plot_rose_to_np(k=k, amplitude=10, figsize=2) for k in range(16)]
 
@@ -78,20 +91,20 @@ def plot_rose_to_np(k=5, amplitude=10, delta_steps=1000, figsize=5):
 def test():
     plot_rose(k=5, amplitude=10, figsize=5)
     img = plot_rose_to_np(k=5, amplitude=10, figsize=5)
-    imageio.imsave('output/rose.png', img)
+    imageio.imsave('rose.png', img)
 
 
 def test_torch():
     ds = create_rose_ds()
     img = ds[0].permute([1, 2, 0])
-    imageio.imsave('output/rose_torch.png', img.cpu().numpy())
+    imageio.imsave('rose_torch.png', img.cpu().numpy())
 
 
 def test_torch_loader():
     ds = create_rose_ds()
     loader = torch.utils.data.DataLoader(ds, batch_size=16, num_workers=0, pin_memory=True, shuffle=True)
     batches = cycle(iter(loader))
-    vutils.save_image(next(batches).cpu().data, 'output/rose_batch.png', normalize=True, nrow=4)
+    vutils.save_image(next(batches).cpu().data, 'rose_batch.png', normalize=True, nrow=4)
 
 
 if __name__ == '__main__':
