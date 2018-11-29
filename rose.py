@@ -15,22 +15,28 @@ import torchvision.utils as vutils
 
 
 class RoseDataset(data.Dataset):
-    def __init__(self, transform=None):
+    def __init__(self, size=1000, transform=None):
         self.transform = transform
-        self.images = create_rose_images()
+        self.images = self.load_images(size, transform)
+
+    @staticmethod
+    def load_images(size, transform):
+        apply_transform = lambda data: data if transform is None else [transform(d) for d in data]
+        sample_data = lambda: apply_transform(create_rose_images())
+        images = sample_data()
+        while len(images) < size:
+            images += sample_data()
+        return images[0:size]
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, index):
-        data = self.images[index]
-        if self.transform is not None:
-            data = self.transform(data)
-        return data
+        return self.images[index]
 
 
-def create_rose_ds():
-    ds = RoseDataset(transform=transforms.Compose([
+def create_rose_ds(size=1000):
+    ds = RoseDataset(size, transform=transforms.Compose([
                              transforms.ToPILImage(),
                              transforms.CenterCrop(180),
                              transforms.RandomAffine(degrees=45, fillcolor=(255, 255, 255)),
@@ -41,8 +47,8 @@ def create_rose_ds():
     return ds
 
 
-def create_rose_ds_single_ch():
-    ds = RoseDataset(transform=transforms.Compose([
+def create_rose_ds_single_ch(size=1000):
+    ds = RoseDataset(size, transform=transforms.Compose([
                              transforms.ToPILImage(),
                              transforms.Grayscale(num_output_channels=1),
                              transforms.CenterCrop(180),
@@ -102,9 +108,10 @@ def test_torch(output):
 
 def test_torch_loader(output):
     ds = create_rose_ds()
-    loader = torch.utils.data.DataLoader(ds, batch_size=16, num_workers=0, pin_memory=True, shuffle=True)
+    loader = torch.utils.data.DataLoader(ds, batch_size=256, num_workers=0, pin_memory=True, shuffle=True)
     batches = cycle(iter(loader))
-    vutils.save_image(next(batches).cpu().data, '{}/rose_batch.png'.format(output), normalize=True, nrow=4)
+    images = next(batches)
+    vutils.save_image(images.cpu().data, '{}/rose_batch.png'.format(output), normalize=True, nrow=16)
 
 
 if __name__ == '__main__':
